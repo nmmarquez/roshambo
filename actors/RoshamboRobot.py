@@ -30,7 +30,8 @@ class RoshamboRobot(object):
         self.throw_function = throw_function
 
     def learn_throw(self, new_results):
-        self.history = np.append(self.history, new_results, axis=0)
+        # Add an extra dimension to new results to make it 2-d, this lets us append to existing history
+        self.history = np.append(self.history, [new_results], axis=0)
 
     def __repr__(self):
         return "My name is {name}!".format(name=self.name)

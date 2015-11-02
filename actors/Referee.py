@@ -1,5 +1,5 @@
 import numpy as np
-
+import roshambo
 
 class Referee(object):
 
@@ -13,13 +13,16 @@ class Referee(object):
 
     Parameters
     ----------
+    rule_set: Object of class RuleSet
+        The rules the game is to be played by
     robot_one: object of class RoshamboRobot
         First actors robot
     robot_two: object of class RoshamboRobot
         Second actors robot
     """
 
-    def __init__(self, robot_one, robot_two):
+    def __init__(self, rule_set, robot_one, robot_two):
+        self.rules = rule_set
         self.robots = {1: robot_one, 2: robot_two}
 
     def check_throw_function(self, robot_id):
@@ -53,3 +56,61 @@ class Referee(object):
             True if the return is a float, long, or int of 0, 1, or 2.
         """
         return isinstance(throw, (int, long, float)) and throw in [0., 1., 2.]
+
+    def conduct_round(self):
+        """
+        Runs a single round of a match. A round consists of:
+
+        1. Asking each robot for their throw
+        2. Evaluating the results of the throw
+        3. Informing each robot of the results
+
+        :return: None
+        """
+
+        # Get each robot's throw
+        throws = []
+        # Note, don't try to iterate over self.robots.keys here because dicts are unsorted
+        for robot in [1, 2]:
+            throws.append(self.robots[robot].make_throw())
+
+        # Evaluate the results of the throw
+        outcomes = self.rules.evaluate_round(throws)
+
+        # Tell the robots
+        print [throws[0], throws[1], outcomes[0]]
+        robot_1_history = np.array([throws[0], throws[1], outcomes[0]])
+        robot_2_history = np.array([throws[1], throws[0], outcomes[1]])
+
+        self.robots[1].learn_throw(robot_1_history)
+        self.robots[2].learn_throw(robot_2_history)
+
+        return
+
+# Test case, conducts a few rounds between a paper and rock bot
+if __name__ == "__main__":
+
+    def always_paper(history):
+        return 1
+
+    def always_rock (history):
+        return 0
+
+    # Build actors
+    paper_robot = roshambo.RoshamboRobot("iRobot", always_paper)
+    rock_robot = roshambo.RoshamboRobot("uRobot", always_rock)
+    ref = roshambo.Referee(roshambo.rule_sets.StandardRuleSet,
+                           paper_robot, rock_robot)
+
+    # Conduct a few rounds
+    ref.conduct_round()
+    ref.conduct_round()
+    ref.conduct_round()
+
+    # Display results
+    print("Rock robot's results, he never wins :(")
+    print(rock_robot.history)
+    print("\n")
+
+    print("Paper robot's results, he always wins :(")
+    print(paper_robot.history)
