@@ -38,7 +38,7 @@ class RoshamboRobot(object):
     def make_throw(self):
         return self.throw_function(self.history)
 
-if __name__ == "main":
+if __name__ == "__main__":
 
     def always_paper(history):
         print history
