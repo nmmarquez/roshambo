@@ -1,4 +1,4 @@
 from actors.Referee import Referee
+from actors.Referee import RuleViolation
 from actors.RoshamboRobot import RoshamboRobot
-import rule_sets
-from rule_sets.rules import RuleViolation
+

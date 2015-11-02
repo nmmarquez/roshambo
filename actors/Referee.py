@@ -1,6 +1,19 @@
 import numpy as np
 import roshambo
 
+class RuleViolation(Exception):
+    """ An exception to be raised when a rule of the game has been broken.
+    Prints a message explaining a violation, and returns the index[es] of throws that violate the rules.
+    """
+    def __init__(self, message, violating_index=None):
+
+        # Call the base class constructor with the parameters it needs
+        super(RuleViolation, self).__init__(message)
+
+        # Index of the throws that violated the rules
+        self.violating_index = violating_index
+
+
 class Referee(object):
 
     """
@@ -21,8 +34,7 @@ class Referee(object):
         Second actors robot
     """
 
-    def __init__(self, rule_set, robot_one, robot_two):
-        self.rules = rule_set
+    def __init__(self, robot_one, robot_two):
         self.robots = {1: robot_one, 2: robot_two}
 
     def check_throw_function(self, robot_id):
@@ -75,7 +87,7 @@ class Referee(object):
             throws.append(self.robots[robot].make_throw())
 
         # Evaluate the results of the throw
-        outcomes = self.rules.evaluate_round(throws)
+        outcomes = self.evaluate_round(throws)
 
         # Tell the robots
         print [throws[0], throws[1], outcomes[0]]
@@ -86,6 +98,87 @@ class Referee(object):
         self.robots[2].learn_throw(robot_2_history)
 
         return
+
+    @staticmethod
+    def evaluate_round(throws):
+        """ Evaluate a standard game of 2-player roshambo.
+        Legal throws:
+        0 = rock, 1 = paper, 2 = scissors
+
+        Possible outcomes:
+        1 = win, 0 = draw, -1 = loss
+
+        :param throws: A length-2 list of legal throws
+        :return: A length-2 list of outcomes
+        """
+
+        # Validate this is a 2-player game
+        num_throws = len(throws)
+        if num_throws != 2:
+            raise RuleViolation("This is a 2-player game, but {nt:d} throws were submitted for evaluation"
+                                .format(nt=num_throws))
+
+        # Validate each throw
+        for throw, robot_index in enumerate(throws):
+            robot_number = robot_index + 1
+
+            if throw not in [0, 1, 2]:
+                raise RuleViolation("The legal throws are 0 for rock, 1 for paper, or 2 for scissors, but "
+                                    "Robot {rn:d} submitted a throw of {t!s}"
+                                    .format(rn=robot_number, t=throw), robot_index)
+
+        # Determine outcomes
+        throw_1 = throws[0]
+        throw_2 = throws[1]
+
+        # Simplest case, a draw
+        if throw_1 == throw_2:
+            outcomes = [0, 0]
+
+        # Verbose rules
+        # No draw, robot 1 throws rock
+        elif throw_1 == 0:
+            # If player 2 throws paper, player 2 wins
+            if throw_2 == 1:
+                outcomes = [-1, 1]
+            # P2 threw scissors and lost
+            elif throw_2 == 2:
+                outcomes = [1, -1]
+
+        # No draw, robot 1 throws paper:
+        elif throw_1 == 1:
+            # If player 2 throws scissors, player 2 wins
+            if throw_2 == 2:
+                outcomes = [-1, 1]
+            # P2 threw rock and lost
+            elif throw_2 == 2:
+                outcomes = [1, -1]
+
+        # No draw, robot 1 throws scissors
+        elif throw_1 == 2:
+            # If player 2 throws rock, player 2 wins
+            if throw_2 == 0:
+                outcomes = [-1, 1]
+            # P2 threw paper and lost
+            elif throw_2 == 1:
+                outcomes = [1, -1]
+
+        # The rules can be dramatically simplified, each throw loses to all numbers 1 higher than it mod 3
+        # and beats numbers 2 higher mod 3
+        if throw_1 == throw_2:
+            outcomes = [0, 0]
+
+        # if throw_2 is 1 higher than throw_1 mod 3, player 2 wins
+        elif throw_2 == (1 + throw_1) % 3:
+            outcomes = [-1, 1]
+
+        elif throw_2 == (2+throw_1) % 3:
+            outcomes = [1, -1]
+
+        else:
+            raise RuleViolation("This should never happen")
+
+        return outcomes
 
 # Test case, conducts a few rounds between a paper and rock bot
 if __name__ == "__main__":
@@ -99,8 +192,7 @@ if __name__ == "__main__":
     # Build actors
     paper_robot = roshambo.RoshamboRobot("iRobot", always_paper)
     rock_robot = roshambo.RoshamboRobot("uRobot", always_rock)
-    ref = roshambo.Referee(roshambo.rule_sets.StandardRuleSet,
-                           paper_robot, rock_robot)
+    ref = roshambo.Referee(paper_robot, rock_robot)
 
     # Conduct a few rounds
     ref.conduct_round()
