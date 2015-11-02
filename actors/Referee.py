@@ -14,9 +14,9 @@ class Referee(object):
     Parameters
     ----------
     robot_one: object of class RoshamboRobot
-        First roshambo robot
+        First actors robot
     robot_two: object of class RoshamboRobot
-        Second roshambo robot
+        Second actors robot
     """
 
     def __init__(self, robot_one, robot_two):
